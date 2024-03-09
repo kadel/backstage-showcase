@@ -1,0 +1,78 @@
+name: Playwright
+on:
+  - pull_request
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Create kind config file
+        run: |
+          cat <<EOF > kind-config.yaml
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "ingress-ready=true"
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+          EOF
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.9.0
+        with:
+          config: kind-config.yaml
+
+      - name: Install NGINX Ingress Controller
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+          kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+
+      - name: Install Backstage
+        run: |
+          helm repo add rhdh-chart https://redhat-developer.github.io/rhdh-chart
+          helm install rhdh rhdh-chart/backstage --set global.host=backstage.127.0.0.1.nip.io  --set route.enabled=false --set upstream.ingress.enabled=true
+          kubectl wait --for=condition=ready pod --selector=app.kubernetes.io/instance=rhdh --timeout=5m
+          kubectl get pods -o yaml
+          # todo: wait for postgresql pod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Playwright
+        run: |
+          yarn --cwd e2e-tests install
+          yarn --cwd e2e-tests postinstall
+
+      - name: Run Playwright tests
+        run: yarn --cwd e2e-tests test
+        env:
+          BASE_URL: http://backstage.127.0.0.1.nip.io
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: e2e-tests/playwright-report/
+          retention-days: 7
