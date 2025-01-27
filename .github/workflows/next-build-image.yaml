@@ -30,7 +30,7 @@ concurrency:
 
 env:
   REGISTRY: quay.io
-  REGISTRY_IMAGE: rhdh-community/rhdh
+  REGISTRY_IMAGE: tkral/backstage-showcase
 
 jobs:
   build-image:
@@ -41,7 +41,7 @@ jobs:
       matrix:
         platform:
           - linux/amd64
-          - linux/arm64
+          # - linux/arm64
     permissions:
       contents: read
       packages: write
