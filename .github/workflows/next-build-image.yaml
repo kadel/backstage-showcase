@@ -40,8 +40,9 @@ jobs:
       - name: Install podman
         run: |
           brew install podman
+          podman machine set --cpus 3 --disk-size 10 --memory 5722
           podman machine init
-          podman machine start
+          podman machine start --log-level debug
       - name: Checkout
         uses: actions/checkout@v4
         with:
