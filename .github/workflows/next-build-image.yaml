@@ -54,9 +54,9 @@ jobs:
 
       - name: Prepare
         run: |
-          if ["${{ matrix.os }}" = "ubuntu-24.04"]; then
+          if ["${{ matrix.os }}" == "ubuntu-24.04"]; then
             platform="linux/amd64"
-          elif ["${{ matrix.os }}" = "ubuntu-24.04-arm"]; then
+          elif ["${{ matrix.os }}" == "ubuntu-24.04-arm"]; then
             platform="linux/arm64"
           else
             echo "Unknown platform"
