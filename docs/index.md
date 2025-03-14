@@ -212,7 +212,6 @@ The easiest and fastest method for getting started: RHDH app, running it locally
     ```yaml
     app:
       baseUrl: http://localhost:3000
-
     backend:
       baseUrl: http://localhost:7007
       cors:
